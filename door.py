@@ -1,7 +1,7 @@
 from gpiozero import DistanceSensor
 from time import sleep
 
-sensor = DistanceSensor(echo=17, trigger=27)
+sensor = DistanceSensor(echo=19, trigger=26)
 object = False
 count = 0
 #check 5 times in 5 seconds, set object variable accordingly
