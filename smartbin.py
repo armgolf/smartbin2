@@ -21,13 +21,14 @@ def binstatus1(items):
     import photo #capture image of the object and assign it to variable
     import identify #identify object in the image captured
     time.sleep(7) #wait 7 seconds for object identification
-    items[1] = identify.response #assign object type to compartments array
+    items[1] = identify.a #assign object type to compartments array
+    print(items)
     return(items)
 
 #the door is closed, empty any compartments which contain items
 def binstatus2(items):
     for i in range(1, 4):
-        if items != [0,0,0,0]
+        if items != [0,0,0,0]:
             for i in range(1, 4):
                 if items[i-1] == i:
                     platenumber = i

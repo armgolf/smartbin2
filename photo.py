@@ -5,5 +5,5 @@ camera = PiCamera()
 camera.rotation = 180
 camera.start_preview()
 sleep(5)
-camera.capture('/home/pi/Documents/Smartbin/images/'+filename.imagename)
+camera.capture('/home/pi/Documents/smartbin2/smartbin2-master/images/'+filename.imagename)
 camera.stop_preview()
