@@ -1,6 +1,5 @@
 import time #required for pausing the script
 import RPi.GPIO as GPIO
-import time
 from picamera import PiCamera
 from time import sleep
 import requests
@@ -9,9 +8,12 @@ import json
 from gpiozero import DistanceSensor
 
 def photo():
-    files = (os.listdir("/home/pi/Documents/smartbin2/smartbin2-master/images"))
-    #files = (os.listdir("./images"))
-    lastfile = files[-1]
+    path = '/home/pi/Documents/smartbin2/smartbin2-master/images'
+    name_list = os.listdir(path)
+    full_list = [os.path.join(path,i) for i in name_list]
+    time_sorted_list = sorted(full_list, key=os.path.getmtime)
+    sorted_filename_list = [ os.path.basename(i) for i in time_sorted_list]
+    lastfile = sorted_filename_list[-1]
     ending = lastfile[6:]
     string = ending[:-4]
     number = int(float(string))
@@ -21,38 +23,43 @@ def photo():
     camera.rotation = 180
     camera.start_preview()
     sleep(5)
-    camera.capture('/home/pi/Documents/smartbin2/smartbin2-master/images/'+filename.imagename)
+    camera.capture('/home/pi/Documents/smartbin2/smartbin2-master/images/'+imagename)
     camera.stop_preview()
 
 def identify():
     url = 'https://app.nanonets.com/api/v2/ImageCategorization/LabelFile/'
-    files = (os.listdir("/home/pi/Documents/smartbin2/smartbin2-master/images"))
-    lastfile = files[-1]
+    path = '/home/pi/Documents/smartbin2/smartbin2-master/images'
+    name_list = os.listdir(path)
+    full_list = [os.path.join(path,i) for i in name_list]
+    time_sorted_list = sorted(full_list, key=os.path.getmtime)
+    sorted_filename_list = [ os.path.basename(i) for i in time_sorted_list]
+    lastfile = sorted_filename_list[-1]
     data = {'file': open('/home/pi/Documents/smartbin2/smartbin2-master/images/'+lastfile, 'rb'), 'modelId': ('', 'febf1ef2-559e-4877-9803-ddf4247155e5')}
     #data = {'file': open('./images/image2.jpg', 'rb'), 'modelId': ('', 'febf1ef2-559e-4877-9803-ddf4247155e5')}
     response = requests.post(url, auth= requests.auth.HTTPBasicAuth('GvqHLwBkqU4tpSyXDU471CG6K1y5XYw8', ''), files=data)
-    print(response.text)
+    #print(response.text)
     data = json.loads(response.text)
     a = data["result"][0]["prediction"][0]["label"]
     print(a)
+    return(a)
 
 #open and close plate specified in the argument
 def openplate():
     GPIO.setup(18,GPIO.OUT)
-    print "LED on"
+    print ("LED on")
     GPIO.output(18,GPIO.HIGH)
     time.sleep(3)
-    print "LED off"
+    print ("LED off")
     GPIO.output(18,GPIO.LOW)
     #add complete variable for the plate and return it
 
 #rotate the top bin compartment
 def rotate():
     GPIO.setup(6,GPIO.OUT)
-    print "LED on"
+    print ("LED on")
     GPIO.output(6,GPIO.HIGH)
     time.sleep(3)
-    print "LED off"
+    print ("LED off")
     GPIO.output(6,GPIO.LOW)
 
 #proximity sensor to identify presence of an object in bin entry compartment
@@ -65,7 +72,7 @@ def itemsensor():
         dist = sensor.distance * 100
         if dist < 10:
             count = count + 1
-            if count = 5:
+            if count == 5:
                 object = True
         sleep(1)
     return(object)
@@ -80,7 +87,7 @@ def door():
         dist = sensor.distance * 100
         if dist > 10:
             count = count + 1
-            if count = 2:
+            if count == 2:
                 open = True
         sleep(1)
     return(open)
@@ -96,9 +103,9 @@ def binstatus1(items):
         time.sleep(2)
         rotate() #rotate objects in the top compartment 90 degrees and update items
         photo() #capture image of the object and assign it to variable
-        identify() #identify object in the image captured
+        a = identify() #identify object in the image captured
         time.sleep(7) #wait 7 seconds for object identification
-        items[1] = identify.a #assign object type to compartments array
+        items[1] = a #assign object type to compartments array
         print(items)
         return(items)
     if object == False and open == False:
@@ -110,6 +117,7 @@ def binstatus2(items):
         open = door()
         #for each element of the items array
         for i in range(1, 4):
+            open = door()
             #check if the object is equal to the bottom compartment category
             if items[i-1] == i:
                 platenumber = i
@@ -117,7 +125,7 @@ def binstatus2(items):
                 openplate()
                 items[i] = 0
                 rotate()
-            elif:
+            else:
                 rotate()
             if open == True:
                 break
@@ -132,9 +140,8 @@ while power == True:
     if open == True:
         items = binstatus1(items)
 
-    #check if another object has been input or is about to be input to the bin
+    #check if another object is about to be input to the bin
     open = door()
-    object = itemsensor()
     #while the door is open wait for object to be input or door to close
     if open == False:
         binstatus2(items)
