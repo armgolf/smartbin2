@@ -1,24 +1,88 @@
 import time #required for pausing the script
+import RPi.GPIO as GPIO
+import time
+from picamera import PiCamera
+from time import sleep
+import requests
+import os
+import json
+from gpiozero import DistanceSensor
+
+def photo():
+    files = (os.listdir("/home/pi/Documents/smartbin2/smartbin2-master/images"))
+    #files = (os.listdir("./images"))
+    lastfile = files[-1]
+    ending = lastfile[6:]
+    string = ending[:-4]
+    number = int(float(string))
+    imagename = "-image"+str(number+1)+".jpg"
+    print(imagename)
+    camera = PiCamera()
+    camera.rotation = 180
+    camera.start_preview()
+    sleep(5)
+    camera.capture('/home/pi/Documents/smartbin2/smartbin2-master/images/'+filename.imagename)
+    camera.stop_preview()
+
+def identify():
+    url = 'https://app.nanonets.com/api/v2/ImageCategorization/LabelFile/'
+    files = (os.listdir("/home/pi/Documents/smartbin2/smartbin2-master/images"))
+    lastfile = files[-1]
+    data = {'file': open('/home/pi/Documents/smartbin2/smartbin2-master/images/'+lastfile, 'rb'), 'modelId': ('', 'febf1ef2-559e-4877-9803-ddf4247155e5')}
+    #data = {'file': open('./images/image2.jpg', 'rb'), 'modelId': ('', 'febf1ef2-559e-4877-9803-ddf4247155e5')}
+    response = requests.post(url, auth= requests.auth.HTTPBasicAuth('GvqHLwBkqU4tpSyXDU471CG6K1y5XYw8', ''), files=data)
+    print(response.text)
+    data = json.loads(response.text)
+    a = data["result"][0]["prediction"][0]["label"]
+    print(a)
 
 #open and close plate specified in the argument
 def openplate():
-    import openplate
+    GPIO.setup(18,GPIO.OUT)
+    print "LED on"
+    GPIO.output(18,GPIO.HIGH)
+    time.sleep(3)
+    print "LED off"
+    GPIO.output(18,GPIO.LOW)
     #add complete variable for the plate and return it
 
 #rotate the top bin compartment
 def rotate():
-    import rotate
+    GPIO.setup(6,GPIO.OUT)
+    print "LED on"
+    GPIO.output(6,GPIO.HIGH)
+    time.sleep(3)
+    print "LED off"
+    GPIO.output(6,GPIO.LOW)
 
 #proximity sensor to identify presence of an object in bin entry compartment
 def itemsensor():
-    import itemsensor
-    object = itemsensor.object
+    sensor = DistanceSensor(echo=24, trigger=23)
+    object = False
+    count = 0
+    #check 5 times in 5 seconds, set object variable accordingly
+    for x in range(5):
+        dist = sensor.distance * 100
+        if dist < 10:
+            count = count + 1
+            if count = 5:
+                object = True
+        sleep(1)
     return(object)
 
 #proximity sensor to identify when the door is open or closed
 def door():
-    import door
-    open = door.open
+    sensor = DistanceSensor(echo=19, trigger=26)
+    object = False
+    count = 0
+    #check 5 times in 5 seconds, set object variable accordingly
+    for x in range(2):
+        dist = sensor.distance * 100
+        if dist > 10:
+            count = count + 1
+            if count = 2:
+                open = True
+        sleep(1)
     return(open)
 
 #an object has been put in the bin, rotate, and identify the object
@@ -30,9 +94,9 @@ def binstatus1(items):
         open = door()
     if object == True:
         time.sleep(2)
-        import rotate #rotate objects in the top compartment 90 degrees and update items
-        import photo #capture image of the object and assign it to variable
-        import identify #identify object in the image captured
+        rotate() #rotate objects in the top compartment 90 degrees and update items
+        photo() #capture image of the object and assign it to variable
+        identify() #identify object in the image captured
         time.sleep(7) #wait 7 seconds for object identification
         items[1] = identify.a #assign object type to compartments array
         print(items)
